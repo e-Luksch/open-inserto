@@ -1,23 +1,28 @@
-# ADR 0012 – Local Draft to eBay Linkage
+# ADR 0012 – Verknüpfung lokaler Drafts mit eBay
 
 ## Status
+
 Accepted
 
-## Decision
-A local draft remains the system of record and stores the linkage to eBay objects.
+## Entscheidung
 
-## Required stored linkage
-- internal `draft_id`
-- marketplace `sku`
+Der lokale Draft bleibt die führende interne Datenquelle und speichert die Verknüpfung zu eBay-Objekten.
+
+## Erforderliche Verknüpfungsdaten
+
+- interne `draft_id`
+- Marketplace-`sku`
 - `inventoryItemKey`
 - `offerId`
-- current local workflow state
-- timestamps of creation/update
+- aktueller lokaler Workflow-Status
+- Zeitstempel für Erstellung und letzte Aktualisierung
 
-## Principle
-The local draft must remain usable even if eBay offer creation fails or has to be retried.
+## Grundprinzip
 
-## Why
-- stable recovery path
-- decouples local work from external API state
-- simplifies edits and retries
+Der lokale Draft muss auch dann nutzbar bleiben, wenn die eBay-Offer-Erstellung fehlschlägt oder erneut versucht werden muss.
+
+## Warum?
+
+- stabiler Wiederaufnahmepfad
+- Trennung zwischen lokaler Arbeit und externem API-Zustand
+- einfachere Bearbeitung und Retries

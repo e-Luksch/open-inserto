@@ -1,28 +1,33 @@
-# ADR 0015 – MVP Scope and Non-Goals
+# ADR 0015 – MVP-Umfang und Nicht-Ziele
 
 ## Status
+
 Accepted
 
-## MVP scope
-The first version should support:
-- single-item listing flow
-- image upload
-- structured draft generation
-- HTML template rendering
-- review step
-- eBay inventory item creation
-- unpublished eBay offer creation
-- local persistence of draft + external ids
+## MVP-Umfang
 
-## Explicit non-goals for MVP
-- automatic publication without review
-- auction support as first-class path
-- multi-marketplace support
-- variants
-- advanced shipping matrix logic
-- complex item specifics coverage for all categories
-- heavy SPA frontend
-- multi-user collaboration
+Die erste Version soll unterstützen:
 
-## Why
-A narrow MVP reduces risk and gets the useful core running earlier.
+- Single-Item-Listing-Flow
+- Bildupload
+- strukturierte Draft-Erzeugung
+- HTML-Template-Rendering
+- Review-Schritt
+- eBay Inventory Item Erstellung
+- unveröffentlichte eBay-Offer-Erstellung
+- lokale Persistenz von Draft + externen IDs
+
+## Explizite Nicht-Ziele für den MVP
+
+- automatische Veröffentlichung ohne Review
+- Auktionssupport als primärer Pfad
+- Multi-Marketplace-Support
+- Variantenprodukte
+- komplexe Versandmatrix-Logik
+- vollständige Abdeckung aller eBay-Item-Specifics
+- schwergewichtiges SPA-Frontend
+- Multi-User-Collaboration
+
+## Warum?
+
+Ein enger MVP reduziert Risiko und bringt den nützlichen Kern schneller zum Laufen.

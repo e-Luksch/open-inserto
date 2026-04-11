@@ -1,22 +1,26 @@
-# ADR 0013 – Result and Status Page
+# ADR 0013 – Ergebnis- und Statusseite
 
 ## Status
+
 Accepted
 
-## Decision
-After draft creation or eBay offer creation, the app shows a simple status/result page.
+## Entscheidung
 
-## MVP contents
-- draft title
-- internal draft id
-- current workflow status
-- whether review is still needed
-- eBay inventory item key (if available)
-- eBay offer id (if available)
-- last action result
-- next recommended action
+Nach der Draft-Erstellung oder der eBay-Offer-Erstellung zeigt die App eine einfache Status-/Ergebnis-Seite an.
 
-## Why
-- keeps the app understandable
-- avoids hidden background state
-- makes manual review easy
+## Inhalte im MVP
+
+- Draft-Titel
+- interne Draft-ID
+- aktueller Workflow-Status
+- ob noch Review nötig ist
+- eBay Inventory Item Key (falls vorhanden)
+- eBay Offer ID (falls vorhanden)
+- Ergebnis der letzten Aktion
+- nächster empfohlener Schritt
+
+## Warum?
+
+- macht den Zustand der App verständlich
+- vermeidet versteckten Hintergrundzustand
+- erleichtert die manuelle Prüfung

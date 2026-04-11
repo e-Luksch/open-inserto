@@ -1,12 +1,15 @@
-# ADR 0011 – Internal Status Transitions
+# ADR 0011 – Interne Statusübergänge
 
 ## Status
+
 Accepted
 
-## Decision
-The MVP uses explicit internal workflow states for each draft.
+## Entscheidung
 
-## States
+Der MVP verwendet explizite interne Workflow-Status für jeden Draft.
+
+## Statuswerte
+
 - `draft`
 - `classified`
 - `needs_attention`
@@ -17,18 +20,20 @@ The MVP uses explicit internal workflow states for each draft.
 - `blocked`
 - `error`
 
-## Transition examples
-- upload complete -> `draft`
-- first analysis complete -> `classified`
-- missing key information -> `needs_attention`
-- user confirms/corrects -> `ready_for_review`
-- review accepted -> `ready_for_marketplace`
-- eBay offer created -> `offer_created`
-- later publishing step -> `published`
-- unresolved blocker -> `blocked`
-- technical failure -> `error`
+## Beispielhafte Übergänge
 
-## Why
-- clear UI state
-- retry-safe process handling
-- easier debugging and persistence
+- Upload abgeschlossen -> `draft`
+- erste Analyse abgeschlossen -> `classified`
+- wichtige Informationen fehlen -> `needs_attention`
+- Nutzer bestätigt oder korrigiert -> `ready_for_review`
+- Review abgeschlossen -> `ready_for_marketplace`
+- eBay-Offer erfolgreich erstellt -> `offer_created`
+- spätere Veröffentlichung -> `published`
+- offener Blocker -> `blocked`
+- technischer Fehler -> `error`
+
+## Warum?
+
+- klarer UI-Zustand
+- sichere Wiederaufnahme bei Unterbrechungen
+- einfacheres Debugging und bessere Persistenz

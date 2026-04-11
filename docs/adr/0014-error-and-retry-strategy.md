@@ -1,26 +1,31 @@
-# ADR 0014 – Error and Retry Strategy
+# ADR 0014 – Fehler- und Retry-Strategie
 
 ## Status
+
 Accepted
 
-## Decision
-The MVP must preserve local draft state on failure and allow safe retries.
+## Entscheidung
 
-## Rules
-- never lose the local draft on API failure
-- store failure as local state
-- show actionable error messages
-- allow retry for marketplace creation
-- separate validation errors from external API errors
+Der MVP muss den lokalen Draft-Zustand bei Fehlern erhalten und sichere Wiederholungen ermöglichen.
 
-## Example categories
-- input/validation error
-- template rendering error
-- image processing/storage error
-- eBay auth error
-- eBay API request error
+## Regeln
 
-## Why
-- reliability over silent failure
-- better UX
-- easier debugging
+- lokaler Draft darf bei API-Fehlern nie verloren gehen
+- Fehler werden als lokaler Zustand gespeichert
+- Fehlermeldungen sollen verständlich und handlungsorientiert sein
+- Marketplace-Erstellung muss erneut versucht werden können
+- Validierungsfehler und externe API-Fehler werden getrennt behandelt
+
+## Beispielhafte Fehlerkategorien
+
+- Eingabe-/Validierungsfehler
+- Template-Rendering-Fehler
+- Bildverarbeitungs-/Speicherfehler
+- eBay-Auth-Fehler
+- eBay-API-Fehler
+
+## Warum?
+
+- Zuverlässigkeit statt stiller Fehler
+- bessere Nutzerführung
+- einfachere Fehlersuche
