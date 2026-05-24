@@ -55,8 +55,10 @@ def test_upload_page_renders(client: TestClient):
     response = client.get("/drafts/upload")
 
     assert response.status_code == 200
-    assert "Mehrfach-Upload mit Vorschau" in response.text
-    assert "Draft erstellen" in response.text
+    assert "Hi, lade zuerst deine Bilder hoch." in response.text
+    assert "Bilder werden hier erst einmal nur hochgeladen" in response.text
+    assert "Wenn du magst, gib mir direkt noch ein paar Hinweise mit." in response.text
+    assert "Bilder senden" in response.text
 
 
 def test_post_upload_creates_draft_and_files(client: TestClient):
@@ -101,6 +103,29 @@ def test_post_upload_creates_draft_and_files(client: TestClient):
     normalized = sorted(settings.data_dir.glob("drafts/*/images/normalized/*"))
     assert len(originals) == 2
     assert len(normalized) == 2
+
+
+def test_post_upload_can_continue_asynchronously_in_same_chat(client: TestClient):
+    files = [("images", ("front.jpg", build_image_bytes(image_format="JPEG"), "image/jpeg"))]
+
+    response = client.post(
+        "/drafts/upload",
+        files=files,
+        data={"notes": "Leichte Spuren", "product_name": "Testgerät", "condition": "gut"},
+        headers={"Accept": "application/json"},
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["ok"] is True
+    assert payload["draftId"].startswith("draft_")
+    assert payload["location"].startswith("/drafts/")
+    assert payload["assistant"]["messages"]
+    assert payload["images"][0]["name"] == "front.jpg"
+
+    assistant_state = client.get(f"/drafts/{payload['draftId']}/assistant/state")
+    assert assistant_state.status_code == 200
+    assert assistant_state.json()["ok"] is True
 
 
 def test_draft_detail_can_trigger_analysis_again_from_ui(client: TestClient, monkeypatch: pytest.MonkeyPatch):
@@ -149,6 +174,191 @@ def test_draft_detail_can_trigger_analysis_again_from_ui(client: TestClient, mon
     assert "Schlichte Tischlampe in gutem Gesamtzustand." in detail.text
     assert "Neu analysierte Lampe\nKabel\nErsatzbirne" in detail.text
     assert "Leichte Kratzer\nSchirm leicht verzogen" in detail.text
+
+
+def test_draft_detail_exposes_assistant_flow_and_accepts_async_reply(client: TestClient):
+    files = [("images", ("front.jpg", build_image_bytes(image_format="JPEG"), "image/jpeg"))]
+    response = client.post(
+        "/drafts/upload",
+        files=files,
+        data={"product_name": "iPhone", "condition": "gut", "notes": "Leichte Spuren", "accessories": "Ladekabel"},
+        follow_redirects=False,
+    )
+
+    location = response.headers["location"]
+    detail = client.get(location)
+    assert "Der Ablauf bleibt hier im Chat." in detail.text
+    assert "Ich habe einen Produktnamen erkannt." in detail.text
+    assert "Zurück" in detail.text
+
+    assistant = client.post(
+        f"{location}/assistant/message",
+        json={"action": "answer", "field": "title", "value": "Apple iPhone 13"},
+    )
+
+    assert assistant.status_code == 200
+    payload = assistant.json()
+    assert payload["ok"] is True
+    assert any("Apple iPhone 13" in message["text"] for message in payload["messages"])
+
+    updated_detail = client.get(location)
+    assert "Apple iPhone 13" in updated_detail.text
+
+
+def test_draft_assistant_uses_updated_title_for_follow_up_steps(client: TestClient):
+    files = [("images", ("front.jpg", build_image_bytes(image_format="JPEG"), "image/jpeg"))]
+    response = client.post(
+        "/drafts/upload",
+        files=files,
+        data={"product_name": "DALI Lautsprecher Set", "condition": "gut", "notes": "Standlautsprecher mit Centerspeaker", "accessories": "Abdeckungen"},
+        follow_redirects=False,
+    )
+
+    location = response.headers["location"]
+
+    assistant = client.post(
+        f"{location}/assistant/message",
+        json={"action": "answer", "field": "title", "value": "DALI Rubikore 6 + DALI Rubikore Cinema"},
+    )
+
+    assert assistant.status_code == 200
+    payload = assistant.json()
+    assert payload["ok"] is True
+    assert any("Produktname aktualisiert" in message["text"] for message in payload["messages"])
+    assert any("DALI Rubikore 6 + DALI Rubikore Cinema" in message["text"] for message in payload["messages"])
+    assert payload["fieldValues"]["title"] == "DALI Rubikore 6 + DALI Rubikore Cinema"
+
+    updated_detail = client.get(location)
+    assert "DALI Rubikore 6 + DALI Rubikore Cinema" in updated_detail.text
+
+
+def test_draft_assistant_keeps_confirmed_messages_stable_without_replaying_old_prompts(client: TestClient):
+    files = [("images", ("front.jpg", build_image_bytes(image_format="JPEG"), "image/jpeg"))]
+    response = client.post(
+        "/drafts/upload",
+        files=files,
+        data={"product_name": "iPhone", "condition": "gut", "notes": "Leichte Spuren", "accessories": "Ladekabel"},
+        headers={"Accept": "application/json"},
+    )
+
+    draft_id = response.json()["draftId"]
+    first_state = client.get(f"/drafts/{draft_id}/assistant/state").json()["assistant"]
+    first_title_prompts = [message for message in first_state["messages"] if "Ich habe einen Produktnamen erkannt." in message["text"]]
+    assert len(first_title_prompts) == 1
+
+    reply = client.post(
+        f"/drafts/{draft_id}/assistant/message",
+        json={"action": "confirm", "field": "title"},
+    )
+
+    assert reply.status_code == 200
+    payload = reply.json()
+    assert sum(1 for message in payload["messages"] if "Ich habe einen Produktnamen erkannt." in message["text"]) == 0
+    assert any(message["text"] == "Alles klar, Produktname ist übernommen." for message in payload["messages"])
+    assert any(message["text"].startswith("Welchen Zustand soll ich festhalten?") for message in payload["messages"])
+
+
+def test_draft_assistant_does_not_keep_product_title_as_only_included_item(client: TestClient):
+    files = [("images", ("front.jpg", build_image_bytes(image_format="JPEG"), "image/jpeg"))]
+    response = client.post(
+        "/drafts/upload",
+        files=files,
+        data={"product_name": "Jurassic World T-Rex Spielzeugfigur", "condition": "neu", "notes": "Mattel Figur"},
+        follow_redirects=False,
+    )
+
+    location = response.headers["location"]
+
+    assistant = client.post(
+        f"{location}/assistant/message",
+        json={"action": "answer", "field": "title", "value": "Jurassic World T-Rex Spielzeugfigur"},
+    )
+
+    assert assistant.status_code == 200
+    payload = assistant.json()
+    assert payload["ok"] is True
+    assert not any("Was gehört alles zum Lieferumfang?\n\nJurassic World T-Rex Spielzeugfigur" == message["text"] for message in payload["messages"])
+
+
+def test_draft_assistant_uses_current_description_text_for_prefill_and_prompt(client: TestClient):
+    files = [("images", ("front.jpg", build_image_bytes(image_format="JPEG"), "image/jpeg"))]
+    response = client.post(
+        "/drafts/upload",
+        files=files,
+        data={"product_name": "Lampe", "condition": "gut", "notes": "Erste Notiz", "accessories": "Kabel"},
+        follow_redirects=False,
+    )
+
+    location = response.headers["location"]
+    client.post(
+        f"{location}/review",
+        data={
+            "title": "Lampe",
+            "condition": "gut",
+            "description": "Neue Beschreibung\nmit Absatz",
+            "included_items": "Kabel",
+            "action": "save",
+        },
+        follow_redirects=False,
+    )
+    client.post(f"{location}/assistant/message", json={"action": "confirm", "field": "title"})
+    client.post(f"{location}/assistant/message", json={"action": "confirm", "field": "condition"})
+    client.post(f"{location}/assistant/message", json={"action": "confirm", "field": "included_items"})
+
+    state = client.get(f"{location}/assistant/state")
+    payload = state.json()["assistant"]
+    description_message = next(message for message in payload["messages"] if message.get("field") == "description_html")
+    assert "Beschreibungsvorschlag:" in description_message["text"]
+    assert "Neue Beschreibung\nmit Absatz" in description_message["text"]
+    assert payload["fieldValues"]["description_html"] == "Neue Beschreibung\nmit Absatz"
+
+
+def test_draft_assistant_treats_unknown_values_as_unanswered(client: TestClient):
+    files = [("images", ("front.jpg", build_image_bytes(image_format="JPEG"), "image/jpeg"))]
+    response = client.post(
+        "/drafts/upload",
+        files=files,
+        data={"product_name": "Porsche 911 Carrera S Cabriolet", "condition": "unbekannt", "notes": "Modellauto"},
+        follow_redirects=False,
+    )
+
+    location = response.headers["location"]
+    client.post(
+        f"{location}/assistant/message",
+        json={"action": "confirm", "field": "title"},
+    )
+
+    state = client.get(f"{location}/assistant/state")
+    payload = state.json()["assistant"]
+    assert payload["pendingField"] == "condition"
+    condition_message = next(message for message in payload["messages"] if message.get("field") == "condition")
+    assert condition_message["text"] == "Welchen Zustand soll ich festhalten?"
+
+
+def test_draft_assistant_can_confirm_category_without_page_reload(client: TestClient):
+    files = [("images", ("front.jpg", build_image_bytes(image_format="JPEG"), "image/jpeg"))]
+    response = client.post(
+        "/drafts/upload",
+        files=files,
+        data={"product_name": "Lampe", "condition": "gut", "notes": "Kleine Lampe", "accessories": "Kabel"},
+        follow_redirects=False,
+    )
+
+    location = response.headers["location"]
+    draft_id = location.rsplit("/", 1)[-1]
+
+    assistant = client.post(
+        f"/drafts/{draft_id}/assistant/message",
+        json={"action": "answer", "field": "category_suggestion", "value": "12345"},
+    )
+
+    assert assistant.status_code == 200
+    payload = assistant.json()
+    assert payload["ok"] is True
+
+    state = client.get(f"/drafts/{draft_id}/assistant/state")
+    assert state.status_code == 200
+    assert state.json()["draftId"] == draft_id
 
 
 def test_post_upload_without_images_returns_validation_error(client: TestClient):

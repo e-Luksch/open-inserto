@@ -101,6 +101,20 @@ http://localhost:8000/integrations/ebay/callback?code=<CODE>&state=<STATE>
 
 `state` muss aus demselben Login-Vorgang stammen, weil Open Inserto diesen Wert lokal prüft. Der Login muss deshalb immer zuerst über den Button in Open Inserto gestartet werden.
 
+## Nächste UX-Ausbaustufe
+
+Das aktuelle MVP bleibt bewusst serverseitig und formularnah, ist aber nicht das endgültige Zielbild.
+
+Die nächste Phase ist ein **chat-artiger Assisted-Selling-Flow**. Der aktuelle Stand bringt dafür bereits eine konkrete UI-Referenz mit:
+
+- Einstieg über eine Tailwind-basierte, chat-artige Upload-Oberfläche
+- sichtbare AI-Loading-Animation während der Analyse
+- erkannte Kernangaben direkt im Assistenten-Flow bestätigen oder korrigieren
+- fehlende Kerninfos werden schrittweise ohne Full-Page-Reload nachgefragt
+- das klassische Review-Formular bleibt als Fallback und Feinjustierung bestehen
+
+Die Architekturentscheidung dazu ist in [`docs/adr/0018-conversational-assisted-selling-ui.md`](docs/adr/0018-conversational-assisted-selling-ui.md) festgehalten.
+
 ## Tests
 
 ```bash
